@@ -1,0 +1,53 @@
+name: Gold Price Monitor
+
+on:
+  # 定时触发：每小时的第5分钟运行（例如 1:05, 2:05...）
+  schedule:
+    - cron: '5 */1 * * *'
+  
+  # 允许手动触发（在GitHub页面上手动运行）
+  workflow_dispatch:
+  
+  # 当代码有push时也运行（测试用）
+  push:
+    branches: [ main ]
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest  # 使用最新的Ubuntu系统
+    
+    steps:
+    # 步骤1：检出代码（把仓库代码下载到虚拟机）
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    # 步骤2：设置Python环境
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'  # 使用Python 3.9
+        
+    # 步骤3：安装依赖
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+        
+    # 步骤4：运行金价监控脚本
+    - name: Get gold price
+      env:
+        # 从GitHub Secrets读取配置
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        GOLDAPI_TOKEN: ${{ secrets.GOLDAPI_TOKEN }}
+      run: |
+        echo "🟡 开始获取金价..."
+        python gold_price.py
+        echo "✅ 任务完成"
+        
+    # 步骤5：上传历史记录文件（可选）
+    - name: Upload history file
+      uses: actions/upload-artifact@v3
+      with:
+        name: gold-history
+        path: gold_history.json
